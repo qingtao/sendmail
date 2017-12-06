@@ -12,10 +12,13 @@ import (
 )
 
 var (
+	//ErrNoMailFrom no from
 	ErrNoMailFrom = errors.New("from field is empty")
-	ErrNoMailTo   = errors.New("to field is empty")
+	//ErrNoMailTo no to
+	ErrNoMailTo = errors.New("to field is empty")
 )
 
+//Join join slice of string with separator ","
 func Join(a []string, sep string) string {
 	s := ""
 	for i := 0; i < len(a); i++ {
