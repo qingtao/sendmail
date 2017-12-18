@@ -6,20 +6,21 @@ import (
 
 var (
 	sub = []byte("Test sendmail")
-	msg = []byte(`<pre>This email test the action success or failed.
+	msg = []byte(`<h1>TEST</h1><pre>This email test the action success or failed.
 Do not reply it.
 </pre>`)
 )
 
+//repace the address of email::::
 //TestSendmailSkipTLS test sendmail not verfiy TLS
 func TestSendmailSkipTLS(t *testing.T) {
 	var (
 		addr = "127.0.0.1:25"
 		from = "jnit"
-		to   = []string{"wuqingtao@sf-express.com"}
-		cc   = []string{"wuqingtao@sf-express.com"}
+		to   = []string{"wuqingtao@"}
+		cc   = []string{"wuqingtao@"}
 		bcc  = []string{
-			"wuqingtao@sf-express.com",
+			"wuqingtao@",
 		}
 	)
 	err := SendmailSkipTLS(addr, from, "", to, cc, bcc, sub, msg)
@@ -39,7 +40,7 @@ func TestSendmail(t *testing.T) {
 		to       = []string{"wqt_1abc2c3z@qq.com"}
 		cc       = []string{"27411abc2c3z9@qq.com"}
 		bcc      = []string{
-			"wuqingtao@sf-express.com",
+			"wuqingtao@",
 		}
 	)
 	msg = append(msg, []byte("\nno local\n")...)

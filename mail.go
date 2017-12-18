@@ -77,7 +77,7 @@ func Sendmail(addr, from, password string, to, cc, bcc []string, sub, msg []byte
 	b.WriteString("Content-Transfer-Encoding: base64\r\n")
 	//add \r\n
 	b.WriteString("\r\n")
-	b.WriteString(base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("<pre>%s</pre>", msg))))
+	b.WriteString(base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", msg))))
 	//add \r\n
 	b.WriteString("\r\n")
 	if password == "" {
@@ -171,7 +171,7 @@ func SendmailSkipTLS(addr, from, password string, to, cc, bcc []string, sub, msg
 	b.WriteString("Content-Transfer-Encoding: base64\r\n")
 	//add \r\n
 	b.WriteString("\r\n")
-	b.WriteString(base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("<pre>%s</pre>", msg))))
+	b.WriteString(base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s", msg))))
 	//add \r\n
 	b.WriteString("\r\n")
 
