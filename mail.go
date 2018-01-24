@@ -180,9 +180,11 @@ func SendmailSkipTLS(addr, from, password string, to, cc, bcc []string, sub, msg
 	if err != nil {
 		return err
 	}
-	defer wc.Close()
 
 	if _, err := b.WriteTo(wc); err != nil {
+		return err
+	}
+	if err = wc.Close(); err != nil {
 		return err
 	}
 	return c.Quit()
