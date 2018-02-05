@@ -12,8 +12,8 @@ Do not reply it.
 )
 
 //repace the address of email::::
-//TestSendmailSkipTLS test sendmail not verfiy TLS
-func TestSendmailSkipTLS(t *testing.T) {
+//TestSendmailSkipVerifyTLS test sendmail not verfiy TLS
+func TestSendmailSkipVerifyTLS(t *testing.T) {
 	var (
 		addr = "127.0.0.1:25"
 		from = "jnit"
@@ -23,7 +23,7 @@ func TestSendmailSkipTLS(t *testing.T) {
 			"wuqingtao@",
 		}
 	)
-	err := SendmailSkipTLS(addr, from, "", to, cc, bcc, sub, msg)
+	err := SendmailSkipVerifyTLS(addr, from, "", to, cc, bcc, sub, msg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestSendmail(t *testing.T) {
 		from     = "wqt_1abc2c3z@163.com"
 		password = "q"
 		to       = []string{"wqt_1abc2c3z@qq.com"}
-		cc       = []string{"27411abc2c3z9@qq.com"}
+		cc       = []string{"271abc2c3z9@qq.com"}
 		bcc      = []string{
 			"wuqingtao@",
 		}

@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	//ErrNoMailFrom no from
+	//ErrNoMailFrom address of from user is empty
 	ErrNoMailFrom = errors.New("from field is empty")
-	//ErrNoMailTo no to
+	//ErrNoMailTo address of to is empty
 	ErrNoMailTo = errors.New("to field is empty")
 )
 
@@ -22,11 +22,12 @@ var (
 func Join(a []string, sep string) string {
 	s := ""
 	for i := 0; i < len(a); i++ {
+		// if a[i] exists, continue next item
 		if i == 0 {
 			s = a[i]
 			continue
 		}
-		s += "," + a[i]
+		s += sep + a[i]
 	}
 	return s
 }
@@ -94,8 +95,8 @@ func Sendmail(addr, from, password string, to, cc, bcc []string, sub, msg []byte
 	return nil
 }
 
-//SendmailSkipTLS sendmail without TLS verify, it only should be used on localhost
-func SendmailSkipTLS(addr, from, password string, to, cc, bcc []string, sub, msg []byte) error {
+//SendmailSkipTLS sendmail skip TLS verify, it only should be used on localhost
+func SendmailSkipVerifyTLS(addr, from, password string, to, cc, bcc []string, sub, msg []byte) error {
 	//check addr with net.SplitHostPort
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -175,12 +176,13 @@ func SendmailSkipTLS(addr, from, password string, to, cc, bcc []string, sub, msg
 	//add \r\n
 	b.WriteString("\r\n")
 
-	//write email data
+	//wc is io.WriteCloser
 	wc, err := c.Data()
 	if err != nil {
 		return err
 	}
 
+	// write email content to wc
 	if _, err := b.WriteTo(wc); err != nil {
 		return err
 	}
