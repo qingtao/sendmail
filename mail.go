@@ -46,18 +46,27 @@ func newMessage(from *mail.Address, to, cc, bcc []*mail.Address, sub string, msg
 	buf.WriteString("To: ")
 	for i := 0; i < len(to); i++ {
 		buf.WriteString(to[i].String())
+		if i != len(to)-1 {
+			buf.WriteByte(',')
+		}
 	}
 	buf.WriteString("\r\n")
 	// write cc
 	buf.WriteString("Cc: ")
 	for i := 0; i < len(cc); i++ {
 		buf.WriteString(cc[i].String())
+		if i != len(to)-1 {
+			buf.WriteByte(',')
+		}
 	}
 	buf.WriteString("\r\n")
 	// write Bcc
 	buf.WriteString("Bcc: ")
 	for i := 0; i < len(bcc); i++ {
 		buf.WriteString(bcc[i].String())
+		if i != len(to)-1 {
+			buf.WriteByte(',')
+		}
 	}
 	buf.WriteString("\r\n")
 	// write content-type
