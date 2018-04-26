@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"mime"
 	"net"
 	"net/mail"
@@ -120,8 +119,8 @@ func Sendmail(addr, from, password string, to, cc, bcc []string, sub string, msg
 	for i := 0; i < len(rcptto); i++ {
 		mailto[i] = rcptto[i].Address
 	}
-	fmt.Println(mailfrom.Address)
-	fmt.Println(password)
+	// fmt.Println(mailfrom.Address)
+	// fmt.Println(password)
 
 	if password == "" {
 		if err := smtp.SendMail(addr, nil, mailfrom.Address, mailto, []byte(content)); err != nil {
