@@ -2,13 +2,15 @@
 package sendmail
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"mime"
 	"net"
+	"net/mail"
 	"net/smtp"
+	"strings"
 )
 
 var (
@@ -18,22 +20,57 @@ var (
 	ErrNoMailTo = errors.New("to field is empty")
 )
 
-//Join join slice of string with separator ","
-func Join(a []string, sep string) string {
-	s := ""
+func parseAddress(a []string) ([]*mail.Address, error) {
+	addrs := make([]*mail.Address, len(a))
 	for i := 0; i < len(a); i++ {
-		// if a[i] exists, continue next item
-		if i == 0 {
-			s = a[i]
-			continue
+		addr, err := mail.ParseAddress(a[i])
+		if err != nil {
+			return nil, err
 		}
-		s += sep + a[i]
+		addrs[i] = addr
 	}
-	return s
+	return addrs, nil
+}
+
+func newMessage(from *mail.Address, to, cc, bcc []*mail.Address, sub string, msg []byte) (string, error) {
+	var buf strings.Builder
+	// write subject
+	buf.WriteString("Subject: ")
+	buf.WriteString(mime.BEncoding.Encode("utf-8", sub))
+	buf.WriteString("\r\n")
+	//write mail from
+	buf.WriteString("From: ")
+	buf.WriteString(from.String())
+	buf.WriteString("\r\n")
+	// write rcpt to
+	buf.WriteString("To: ")
+	for i := 0; i < len(to); i++ {
+		buf.WriteString(to[i].String())
+	}
+	buf.WriteString("\r\n")
+	// write cc
+	buf.WriteString("Cc: ")
+	for i := 0; i < len(cc); i++ {
+		buf.WriteString(cc[i].String())
+	}
+	buf.WriteString("\r\n")
+	// write Bcc
+	buf.WriteString("Bcc: ")
+	for i := 0; i < len(bcc); i++ {
+		buf.WriteString(bcc[i].String())
+	}
+	buf.WriteString("\r\n")
+	// write content-type
+	buf.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
+	buf.WriteString("Content-Transfer-Encoding: base64\r\n")
+	buf.WriteString("\r\n")
+	buf.WriteString(base64.StdEncoding.EncodeToString(msg))
+	buf.WriteString("\r\n")
+	return buf.String(), nil
 }
 
 //Sendmail use smtp.SendMail
-func Sendmail(addr, from, password string, to, cc, bcc []string, sub, msg []byte) error {
+func Sendmail(addr, from, password string, to, cc, bcc []string, sub string, msg []byte) error {
 	//check addr with net.SplitHostPort
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -47,56 +84,52 @@ func Sendmail(addr, from, password string, to, cc, bcc []string, sub, msg []byte
 	if len(to) < 1 {
 		return ErrNoMailTo
 	}
-
-	var b bytes.Buffer
-	//add Subject
-	b.WriteString(fmt.Sprintf("Subject: =?UTF-8?B?%s?=\r\n", base64.StdEncoding.EncodeToString(sub)))
-	//add From
-	b.WriteString(fmt.Sprintf("From: %s\r\n", from))
-	//add To
-	toHeader := Join(to, ",")
-	//rcpt to
-	b.WriteString(fmt.Sprintf("To: %s\r\n", toHeader))
-
-	//Cc
-	ccHeader := Join(cc, ",")
-	if ccHeader != "" {
-		b.WriteString(fmt.Sprintf("Cc: %s\r\n", ccHeader))
-		to = append(to, cc...)
+	mailfrom, err := mail.ParseAddress(from)
+	if err != nil {
+		return err
+	}
+	rcptto, err := parseAddress(to)
+	if err != nil {
+		return err
+	}
+	ccto, err := parseAddress(cc)
+	if err != nil {
+		return err
+	}
+	bccto, err := parseAddress(bcc)
+	if err != nil {
+		return err
 	}
 
-	//Bcc
-	bccHeader := Join(bcc, ",")
-	if bccHeader != "" {
-		b.WriteString(fmt.Sprintf("Bcc: %s\r\n", bccHeader))
-		to = append(to, bcc...)
+	content, err := newMessage(mailfrom, rcptto, ccto, bccto, sub, msg)
+	if err != nil {
+		return err
 	}
+	rcptto = append(rcptto, ccto...)
+	rcptto = append(rcptto, bccto...)
+	mailto := make([]string, len(rcptto))
+	for i := 0; i < len(rcptto); i++ {
+		mailto[i] = rcptto[i].Address
+	}
+	fmt.Println(mailfrom.Address)
+	fmt.Println(password)
 
-	//add charset: UTF-8
-	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
-	//add encoding: base64
-	b.WriteString("Content-Transfer-Encoding: base64\r\n")
-	//add \r\n
-	b.WriteString("\r\n")
-	b.WriteString(base64.StdEncoding.EncodeToString(msg))
-	//add \r\n
-	b.WriteString("\r\n")
 	if password == "" {
-		if err := smtp.SendMail(addr, nil, from, to, b.Bytes()); err != nil {
+		if err := smtp.SendMail(addr, nil, mailfrom.Address, mailto, []byte(content)); err != nil {
 			return err
 		}
 	} else {
 		//PlainAuth
-		a := smtp.PlainAuth("", from, password, host)
-		if err := smtp.SendMail(addr, a, from, to, b.Bytes()); err != nil {
+		a := smtp.PlainAuth("", mailfrom.Address, password, host)
+		if err := smtp.SendMail(addr, a, mailfrom.Address, mailto, []byte(content)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-//SendmailSkipTLS sendmail skip TLS verify, it only should be used on localhost
-func SendmailSkipVerifyTLS(addr, from, password string, to, cc, bcc []string, sub, msg []byte) error {
+//SkipVerifyTLS sendmail skip TLS verify, it only should be used on localhost
+func SkipVerifyTLS(addr, from, password string, to, cc, bcc []string, sub string, msg []byte) error {
 	//check addr with net.SplitHostPort
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -123,59 +156,55 @@ func SendmailSkipVerifyTLS(addr, from, password string, to, cc, bcc []string, su
 	if err = c.StartTLS(config); err != nil {
 		return err
 	}
+
+	mailfrom, err := mail.ParseAddress(from)
+	if err != nil {
+		return err
+	}
 	//auth password
 	if password != "" {
-		a := smtp.PlainAuth("", from, password, host)
+		a := smtp.PlainAuth("", mailfrom.Address, password, host)
 		if err := c.Auth(a); err != nil {
 			return err
 		}
 	}
-
-	var b bytes.Buffer
-	//add Subject
-	b.WriteString(fmt.Sprintf("Subject: =?UTF-8?B?%s?=\r\n", base64.StdEncoding.EncodeToString(sub)))
-
-	if err = c.Mail(from); err != nil {
+	if err = c.Mail(mailfrom.Address); err != nil {
 		return err
 	}
-	//add From
-	b.WriteString(fmt.Sprintf("From: %s\r\n", from))
 
-	//add To
-	toHeader := Join(to, ",")
-	//rcpt to
-	b.WriteString(fmt.Sprintf("To: %s\r\n", toHeader))
-
-	//Cc
-	ccHeader := Join(cc, ",")
-	if ccHeader != "" {
-		b.WriteString(fmt.Sprintf("Cc: %s\r\n", ccHeader))
-		to = append(to, cc...)
+	rcptto, err := parseAddress(to)
+	if err != nil {
+		return err
+	}
+	ccto, err := parseAddress(cc)
+	if err != nil {
+		return err
+	}
+	bccto, err := parseAddress(bcc)
+	if err != nil {
+		return err
 	}
 
-	//Bcc
-	bccHeader := Join(bcc, ",")
-	if bccHeader != "" {
-		b.WriteString(fmt.Sprintf("Bcc: %s\r\n", bccHeader))
-		to = append(to, bcc...)
+	for _, rcpt := range rcptto {
+		if err := c.Rcpt(rcpt.Address); err != nil {
+			return err
+		}
 	}
-
-	for _, rcpt := range to {
-		if err = c.Rcpt(rcpt); err != nil {
+	for _, rcpt := range ccto {
+		if err := c.Rcpt(rcpt.Address); err != nil {
+			return err
+		}
+	}
+	for _, rcpt := range bccto {
+		if err := c.Rcpt(rcpt.Address); err != nil {
 			return err
 		}
 	}
 
-	//add charset: UTF-8
-	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n")
-	//add encoding: base64
-	b.WriteString("Content-Transfer-Encoding: base64\r\n")
-	//add \r\n
-	b.WriteString("\r\n")
-	b.WriteString(base64.StdEncoding.EncodeToString(msg))
-	//add \r\n
-	b.WriteString("\r\n")
-
+	content, err := newMessage(mailfrom, rcptto, ccto, bccto, sub, msg)
+	if err != nil {
+		return err
+	}
 	//wc is io.WriteCloser
 	wc, err := c.Data()
 	if err != nil {
@@ -183,7 +212,7 @@ func SendmailSkipVerifyTLS(addr, from, password string, to, cc, bcc []string, su
 	}
 
 	// write email content to wc
-	if _, err := b.WriteTo(wc); err != nil {
+	if _, err := wc.Write([]byte(content)); err != nil {
 		return err
 	}
 	if err = wc.Close(); err != nil {

@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	sub = []byte("Test sendmail")
+	sub = "Test sendmail"
 	msg = []byte(`<h1>TEST</h1><pre>This email test the action success or failed.
 Do not reply it.
 </pre>`)
@@ -13,7 +13,7 @@ Do not reply it.
 
 //repace the address of email::::
 //TestSendmailSkipVerifyTLS test sendmail not verfiy TLS
-func TestSendmailSkipVerifyTLS(t *testing.T) {
+func TestSkipVerifyTLS(t *testing.T) {
 	var (
 		addr = "127.0.0.1:25"
 		from = "jnit"
@@ -23,7 +23,7 @@ func TestSendmailSkipVerifyTLS(t *testing.T) {
 			"wuqingtao@",
 		}
 	)
-	err := SendmailSkipVerifyTLS(addr, from, "", to, cc, bcc, sub, msg)
+	err := SkipVerifyTLS(addr, from, "", to, cc, bcc, sub, msg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,12 +35,12 @@ func TestSendmailSkipVerifyTLS(t *testing.T) {
 func TestSendmail(t *testing.T) {
 	var (
 		addr     = "smtp.163.com:25"
-		from     = "wqt_1abc2c3z@163.com"
-		password = "q"
-		to       = []string{"wqt_1abc2c3z@qq.com"}
-		cc       = []string{"271abc2c3z9@qq.com"}
+		from     = "15@163.com"
+		password = "to"
+		to       = []string{" <1@qq.com>"}
+		cc       = []string{"7@qq.com"}
 		bcc      = []string{
-			"wuqingtao@",
+			"w@gmail.com",
 		}
 	)
 	msg = append(msg, []byte("\nno local\n")...)
